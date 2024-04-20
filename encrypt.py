@@ -92,6 +92,13 @@ def task2():
     bPublic = pow(alpha, xb, q)
     
     # MAN IN THE MIDDLE ATTACK
+    print(f"Mallory intercepted aPublic: {aPublic}")
+    print(f"Mallory intercepted bPublic: {bPublic}")
+
+    # Mallory determines secret keys
+    print(f"Mallory determines secret aSecret: {pow(aPublic, xb, q)}")
+    print(f"Mallory determines secret bSecret: {pow(bPublic, xa, q)}")
+
     aPublic = q
     bPublic = q
 
