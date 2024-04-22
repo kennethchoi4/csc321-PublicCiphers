@@ -5,7 +5,9 @@ import random
 from Crypto.Cipher import AES
 from Crypto.Hash import SHA256
 from Crypto.Util.Padding import pad, unpad
-from Crypto.Util.number import bytes_to_long
+from Crypto.Util.number import bytes_to_long, getPrime
+from Crypto.Random import get_random_bytes
+import binascii
 
 def task1():
     # defining secure random number generator
@@ -153,9 +155,76 @@ def task2():
     print(f'plaintext1: {plaintext1}')
     return
 
+def gcd(e, phi):
+    if e == 0:
+        return(phi, 0, 1)
+    else:
+        g, x, y = gcd(phi % e, e)
+        return (g, y - (phi // e) * x, x)
+    
+def inverse(e, phi):
+    g, x, _ = gcd(e, phi)
+    if g != 1:
+        raise Exception('Mod inverse does not exist')
+    else:
+        return x % phi
+
+def task3():
+    #generating keys
+    p = getPrime(2048)
+    q = getPrime(2048)
+    n = p * q 
+    phi = (p - 1) * (q - 1)
+    e = 65537
+    d = inverse(e, phi)
+    public_key = (e, n)
+    private_key = (d, n)
+
+    #encryption
+    msg = "Hello there"
+
+    m = int(binascii.hexlify(msg.encode()), 16)
+    ciphertext = pow(m, public_key[0], public_key[1])
+    print("Ciphertext: ", ciphertext)
+
+    #decryption
+    m = pow(ciphertext, private_key[0], private_key[1])
+    plaintext = binascii.unhexlify(hex(m)[2:]).decode()
+    print("Plaintext: ", plaintext)
+
+    #part 2
+    s = getPrime(2048)
+    c = pow(s, e, n)
+
+    #Mallory
+    t = getPrime(2048)
+    c_prime = pow(t, e, n)
+
+    #Alice receives c_prime
+    s_dec = pow(c_prime, d, n)
+    sha = SHA256.new()
+    sha.update(s_dec.to_bytes((s_dec.bit_length() + 7) // 8, byteorder='big'))
+    k = sha.digest()
+
+    m = b"Hi Bob!"
+    iv = get_random_bytes(AES.block_size)
+    c0 = (AES.new(k, AES.MODE_CBC, iv)).encrypt(pad(m, AES.block_size))
+
+    sha = SHA256.new()
+    sha.update(t.to_bytes((t.bit_length() + 7) // 8, byteorder='big'))
+    k = sha.digest()
+
+    decrypted_message = unpad((AES.new(k, AES.MODE_CBC, iv)).decrypt(c0), AES.block_size)
+    print("Original s: ", s)
+    print("Mallory's t: ", t)
+    print("Decrypted s (should be t): ", s_dec)
+    print("c0: ", c0.hex())
+    print("Decrypted message by Mallory: ", decrypted_message.decode())
 
 if __name__ == "__main__":
-    print("\t RUNNING TASK 1 \n")
+    print("\n\n\t RUNNING TASK 1 \n\n")
     task1()
-    print("\t RUNNING TASK 2 \n")
+    print("\n\n\t RUNNING TASK 2 \n\n")
     task2()
+    print("\n\n\t RUNNING TASK 3 \n\n")
+    task3()
